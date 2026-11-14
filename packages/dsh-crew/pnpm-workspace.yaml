@@ -1,0 +1,7 @@
+# pnpm 11 reads build-script approval from this allowBuilds map; the old
+# onlyBuiltDependencies key (and the `pnpm` block in package.json) is ignored.
+allowBuilds:
+  '@deepseek-ai/dsh-subprocess-local': true
+  esbuild: true
+  koffi: true
+  node-pty: true

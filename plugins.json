@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "plugins": [
+    {
+      "id": "dsh-browser",
+      "package": "@zseven-w/dsh-browser",
+      "path": "packages/dsh-browser",
+      "upstream": "https://github.com/ZSeven-W/dsh-browser",
+      "revision": "69fa75ac53c36c7f297fcce5ed2595fee62e068c",
+      "activation": "preset"
+    },
+    {
+      "id": "dsh-crew",
+      "package": "@zseven-w/dsh-crew",
+      "path": "packages/dsh-crew",
+      "upstream": "https://github.com/ZSeven-W/dsh-crew",
+      "revision": "b00cc6d039cdecf8563b8863aa4b5404285f6e83",
+      "activation": "bundle"
+    },
+    {
+      "id": "dsh-context",
+      "package": "dsh-context",
+      "path": "packages/dsh-context",
+      "upstream": "https://github.com/bowenliang123/dsh-context",
+      "revision": "0.83.0",
+      "activation": "bundle",
+      "localHardening": "Blocks automatic catalog, balance, and recommendation requests."
+    },
+    {
+      "id": "dsh-claude-artifacts",
+      "package": "dsh-claude-artifacts",
+      "path": "packages/dsh-claude-artifacts",
+      "upstream": "https://github.com/JimLiu/baoyu-design",
+      "revision": "2.12.1",
+      "activation": "bundle"
+    },
+    {
+      "id": "dsh-claude-design",
+      "package": "dsh-claude-design",
+      "path": "packages/dsh-claude-design",
+      "upstream": "https://github.com/JimLiu/baoyu-design",
+      "revision": "2.12.1",
+      "activation": "bundle"
+    }
+  ]
+}
