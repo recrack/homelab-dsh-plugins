@@ -25,7 +25,7 @@ The secure image fetches one pinned commit of this repository and builds its pac
 | Runtime selection | `homelab-deepseek-harness-secure` | The Python launcher accepts explicit IDs and records selected local packages in the persistent Web profile. The Plugin Manager UI and tool are disabled. |
 | Activation | DSH Cordis profile | Bundle entries join the profile's bundle list; `dsh-browser` is added to shipped Web presets. Selected code runs in the DSH container and follows its network policy. |
 
-Adding an entry to `plugins.json` alone does not make a plugin selectable. A new package also needs image-build and runtime profile wiring in the secure repository; preset-based plugins need preset wiring there as well. The linked [architecture guide](https://github.com/recrack/homelab-deepseek-harness-secure/blob/master/deploy/offline/README.md#build-and-activation) names those owners.
+Adding an entry to `plugins.json` alone does not make a plugin selectable. A new package also needs image-build and runtime profile wiring in the secure repository. Every supported ID must be added to its validation and profile configuration; preset-based plugins also need a preset row. The linked [architecture guide](https://github.com/recrack/homelab-deepseek-harness-secure/blob/master/deploy/offline/README.md#build-and-activation) names those owners.
 
 ## Build
 
