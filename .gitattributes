@@ -1,0 +1,2 @@
+# Preserve the bytes in Archify's finalized HTML artifacts.
+.archify/**/architecture.html whitespace=-blank-at-eol
