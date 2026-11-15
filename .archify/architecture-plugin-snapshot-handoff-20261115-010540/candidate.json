@@ -1,0 +1,271 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Plugin Snapshots to Secure DSH Runtime",
+    "locale": "en",
+    "output": ".archify/architecture-plugin-snapshot-handoff-20261115-010540/architecture.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/recrack/homelab-dsh-plugins.git",
+      "provider": "github",
+      "revision": "d944d299df7d56c657d6364f5fc90d06cfd49758"
+    }
+  },
+  "components": [
+    {
+      "id": "upstream",
+      "type": "external",
+      "label": "Upstream repositories",
+      "sublabel": "reviewed source revisions",
+      "pos": [
+        25,
+        70
+      ],
+      "size": [
+        160,
+        76
+      ],
+      "sources": [
+        {
+          "path": "plugins.json",
+          "line": 4,
+          "end_line": 43,
+          "label": "Upstream pins"
+        }
+      ]
+    },
+    {
+      "id": "catalog",
+      "type": "backend",
+      "label": "plugins.json",
+      "sublabel": "package paths, pins and activation",
+      "pos": [
+        230,
+        70
+      ],
+      "size": [
+        165,
+        76
+      ],
+      "sources": [
+        {
+          "path": "plugins.json",
+          "line": 1,
+          "end_line": 45,
+          "label": "Catalog records"
+        }
+      ]
+    },
+    {
+      "id": "snapshots",
+      "type": "backend",
+      "label": "Reviewed package snapshots",
+      "sublabel": "local hardening and applicable notices",
+      "pos": [
+        500,
+        70
+      ],
+      "size": [
+        185,
+        76
+      ],
+      "sources": [
+        {
+          "path": "README.md",
+          "line": 3,
+          "end_line": 3,
+          "label": "Repository ownership"
+        },
+        {
+          "path": "README.md",
+          "line": 16,
+          "end_line": 17,
+          "label": "Snapshot policy"
+        }
+      ]
+    },
+    {
+      "id": "build-script",
+      "type": "backend",
+      "label": "scripts/build.sh",
+      "sublabel": "builds browser; installs prod deps",
+      "pos": [
+        760,
+        70
+      ],
+      "size": [
+        165,
+        76
+      ],
+      "sources": [
+        {
+          "path": "scripts/build.sh",
+          "line": 1,
+          "end_line": 9,
+          "label": "Package build steps"
+        }
+      ]
+    },
+    {
+      "id": "secure-image",
+      "type": "external",
+      "label": "Secure DSH image",
+      "sublabel": "fetches this repository at a pinned commit",
+      "pos": [
+        760,
+        220
+      ],
+      "size": [
+        185,
+        76
+      ],
+      "sources": [
+        {
+          "path": "README.md",
+          "line": 3,
+          "end_line": 5,
+          "label": "Consumer behavior"
+        },
+        {
+          "path": "README.md",
+          "line": 21,
+          "end_line": 26,
+          "label": "Integration stages"
+        }
+      ]
+    },
+    {
+      "id": "launcher",
+      "type": "external",
+      "label": "Host launcher",
+      "sublabel": "explicit --plugin IDs; no runtime clone",
+      "pos": [
+        25,
+        360
+      ],
+      "size": [
+        180,
+        76
+      ],
+      "sources": [
+        {
+          "path": "README.md",
+          "line": 5,
+          "end_line": 5,
+          "label": "Runtime selection"
+        }
+      ]
+    },
+    {
+      "id": "web-profile",
+      "type": "backend",
+      "label": "Persistent Web profile",
+      "sublabel": "local package refs and bundle or preset activation",
+      "pos": [
+        760,
+        360
+      ],
+      "size": [
+        195,
+        76
+      ],
+      "sources": [
+        {
+          "path": "README.md",
+          "line": 21,
+          "end_line": 26,
+          "label": "Profile activation"
+        }
+      ]
+    },
+    {
+      "id": "plugin-runtime",
+      "type": "backend",
+      "label": "Selected plugin code",
+      "sublabel": "runs inside the secure DSH container",
+      "pos": [
+        1060,
+        360
+      ],
+      "size": [
+        185,
+        76
+      ],
+      "sources": [
+        {
+          "path": "README.md",
+          "line": 26,
+          "end_line": 26,
+          "label": "Shared network policy"
+        }
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "security-group",
+      "label": "Secure DSH container",
+      "wraps": [
+        "web-profile",
+        "plugin-runtime"
+      ],
+      "pad": 18
+    }
+  ],
+  "connections": [
+    {
+      "from": "upstream",
+      "to": "catalog",
+      "label": "pin"
+    },
+    {
+      "from": "catalog",
+      "to": "snapshots",
+      "label": "package paths"
+    },
+    {
+      "from": "snapshots",
+      "to": "build-script",
+      "label": "build inputs"
+    },
+    {
+      "from": "build-script",
+      "to": "secure-image",
+      "label": "image build"
+    },
+    {
+      "from": "secure-image",
+      "to": "web-profile",
+      "label": "packages"
+    },
+    {
+      "from": "launcher",
+      "to": "web-profile",
+      "label": "selected --plugin IDs"
+    },
+    {
+      "from": "web-profile",
+      "to": "plugin-runtime",
+      "label": "Cordis loads"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Repository ownership",
+      "items": [
+        "This repository owns upstream pins, reviewed snapshots, local hardening, notices and package build steps.",
+        "The secure repository owns image assembly, its supported ID list, persistent profile activation and runtime network policy."
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "Activation and isolation",
+      "items": [
+        "dsh-browser uses Web preset activation; the other catalog entries use bundles.",
+        "Selected plugin code runs inside the secure DSH container and follows its network policy."
+      ]
+    }
+  ]
+}
