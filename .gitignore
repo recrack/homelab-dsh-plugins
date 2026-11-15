@@ -2,3 +2,4 @@
 **/.cache/
 **/*.tsbuildinfo
 **/.DS_Store
+/packages/open-artifacts/generated/

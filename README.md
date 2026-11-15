@@ -9,12 +9,17 @@ The secure image fetches one pinned commit of this repository and builds its pac
 | ID | Package | Source | Snapshot | Activation |
 | --- | --- | --- | --- | --- |
 | `dsh-browser` | `@zseven-w/dsh-browser` | [ZSeven-W/dsh-browser](https://github.com/ZSeven-W/dsh-browser) | `69fa75ac53c36c7f297fcce5ed2595fee62e068c` | Web presets |
-| `dsh-crew` | `@zseven-w/dsh-crew` | [ZSeven-W/dsh-crew](https://github.com/ZSeven-W/dsh-crew) | `b00cc6d039cdecf8563b8863aa4b5404285f6e83` | Web bundle |
 | `dsh-context` | `dsh-context` | [bowenliang123/dsh-context](https://github.com/bowenliang123/dsh-context) | `0.83.0` plus the local offline patch | Web bundle |
-| `dsh-claude-artifacts` | `dsh-claude-artifacts` | [JimLiu/baoyu-design](https://github.com/JimLiu/baoyu-design) | `2.12.1` | Web bundle |
-| `dsh-claude-design` | `dsh-claude-design` | [JimLiu/baoyu-design](https://github.com/JimLiu/baoyu-design) | `2.12.1` | Web bundle |
+| `dsh-claude-artifacts` | `dsh-claude-artifacts` | [JimLiu/open-artifacts](https://github.com/JimLiu/open-artifacts) | `2.16.0`, SHA-512 pinned | Shared Web bundle |
+| `dsh-claude-slides` | `dsh-claude-slides` | [JimLiu/open-artifacts](https://github.com/JimLiu/open-artifacts) | `2.16.0`, SHA-512 pinned | Web bundle |
+| `dsh-claude-design` | `dsh-claude-design` | [JimLiu/open-artifacts](https://github.com/JimLiu/open-artifacts) | `2.16.0`, SHA-512 pinned | Web bundle |
+| `dsh-claude-design-system` | `dsh-claude-design-system` | [JimLiu/open-artifacts](https://github.com/JimLiu/open-artifacts) | `2.16.0`, SHA-512 pinned | Web bundle |
+| `dsh-claude-data` | `dsh-claude-data` | [JimLiu/open-artifacts](https://github.com/JimLiu/open-artifacts) | `2.16.0`, SHA-512 pinned | Web bundle |
+| `dsh-claude-motion` | `dsh-claude-motion` | [JimLiu/open-artifacts](https://github.com/JimLiu/open-artifacts) | `2.16.0`, SHA-512 pinned | Web bundle |
+| `dsh-claude-whiteboard` | `dsh-claude-whiteboard` | [JimLiu/open-artifacts](https://github.com/JimLiu/open-artifacts) | `2.16.0`, SHA-512 pinned | Web bundle |
+| `dsh-crew` | `@zseven-w/dsh-crew` | [ZSeven-W/dsh-crew](https://github.com/ZSeven-W/dsh-crew) | `b00cc6d039cdecf8563b8863aa4b5404285f6e83` | Web bundle |
 
-`plugins.json` records package paths, upstream revisions, and activation types. Each package retains its applicable upstream license and notices. The `dsh-context` snapshot blocks its automatic catalog, balance, and recommendation requests; its upstream source is retained under `packages/dsh-context/upstream/package` for comparison.
+`plugins.json` records package paths, upstream revisions, activation types, and SHA-512 hashes for the Open Artifacts npm tarballs stored under `packages/open-artifacts/snapshots/`. `scripts/build.sh` verifies and extracts those tarballs into an ignored generated directory; the image build needs no npm registry access for Open Artifacts. Each package retains its applicable upstream license and notices. The `dsh-context` snapshot blocks its automatic catalog, balance, and recommendation requests; its upstream source is retained under `packages/dsh-context/upstream/package` for comparison.
 
 ## How the secure deployment uses these packages
 
@@ -37,4 +42,4 @@ The secure image runs this script from its pinned checkout:
 scripts/build.sh
 ```
 
-This builds `dsh-browser`, installs the production dependencies for `dsh-crew`, and installs the production dependency for `dsh-context`. The Baoyu package snapshots include their built `lib` files.
+This verifies and extracts the Open Artifacts snapshots, builds `dsh-browser`, installs the production dependencies for `dsh-crew`, and installs the production dependency for `dsh-context`. The Open Artifacts packages include their prebuilt editors and skill files.

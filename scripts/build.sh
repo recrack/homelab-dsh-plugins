@@ -3,6 +3,8 @@ set -eu
 
 root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 
+node "$root/scripts/install-open-artifacts.mjs"
+
 pnpm --dir "$root/packages/dsh-browser" install --frozen-lockfile
 pnpm --dir "$root/packages/dsh-browser" run build
 pnpm --dir "$root/packages/dsh-crew" install --prod --frozen-lockfile
