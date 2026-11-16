@@ -76,7 +76,7 @@ export interface BrowserSessionInfo {
   state: 'running'
   headless: boolean
   browser: {
-    channel: 'chrome' | 'edge' | 'chromium' | 'custom'
+    channel: 'chrome' | 'edge' | 'chromium' | 'custom' | 'camoufox'
     version: string
   }
   page: {

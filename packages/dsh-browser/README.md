@@ -2,7 +2,7 @@
 
 <p align="center">
   <strong>Headless-first, isolated browser automation for DeepSeek Harness.</strong><br />
-  <sub>Managed Chromium Sessions &bull; Semantic References &bull; Scoped Observation &bull; Bounded Evidence</sub>
+  <sub>Managed Chromium or Camoufox Sessions &bull; Semantic References &bull; Scoped Observation &bull; Bounded Evidence</sub>
 </p>
 
 <p align="center">
@@ -13,7 +13,7 @@
   <a href="./README.md"><b>English</b></a> &middot; <a href="./README.zh.md">简体中文</a>
 </p>
 
-Each Agent gets its own temporary Chrome/Edge/Chromium user-data directory, short-lived semantic references, deterministic high-risk rejection, and bounded evidence. Install it with `npm install @zseven-w/dsh-browser`; this is a prerelease, so the contract (v9) can still change between rc versions.
+Each Agent gets its own temporary browser user-data directory, short-lived semantic references, deterministic high-risk rejection, and bounded evidence. Chromium is the default engine. Camoufox is an optional Firefox-based engine for deployments that install its browser and fingerprint model into the image ahead of time. Install it with `npm install @zseven-w/dsh-browser`; this is a prerelease, so the contract (v9) can still change between rc versions.
 
 [Quick start](#quick-start) · [Tools](#tools) · [Safety](#safety-and-evidence-boundaries) · [Development](#develop-locally) · [Documentation](#documentation)
 
@@ -36,7 +36,7 @@ The exported `zsevenBrowserDriver` service is the stable orchestration surface i
 
 ## Quick start
 
-Requirements: Node.js `>=24.11.0`, pnpm, and an installed Google Chrome, Microsoft Edge, or Chromium. The default path is headless; no personal browser profile is used.
+Requirements: Node.js `>=24.11.0`, pnpm, and an installed Google Chrome, Microsoft Edge, or Chromium. The default path is headless; no personal browser profile is used. Camoufox deployments use a separate image that installs a pinned Camoufox build and fingerprint model during image construction; sessions never download browser or model data.
 
 Install DSH separately, then build this checkout from the repository root:
 
@@ -59,7 +59,7 @@ Set an operator-owned [navigation allowlist](#operator-navigation-policy) before
 
 | Tool | Purpose |
 | --- | --- |
-| `browser_session_start` | Discover installed Chrome/Edge/Chromium and start one isolated context. |
+| `browser_session_start` | Discover the configured browser engine and start one isolated context. |
 | `browser_observe` | Return a bounded semantic view — whole-page, or scoped to one element's subtree via `within` — with opaque epoch/fingerprint/expiry-bound refs. |
 | `browser_act` | `click`, `fill`, `press`, `navigate`, `scroll`, `select`, or `hover` after live re-resolution and target checks. |
 | `browser_evidence` | Return bounded, redacted console and network metadata. |
@@ -119,7 +119,21 @@ Example profile row:
     idleTimeoutMs: 900000
 ```
 
-The allowlist is enforced before start/navigation, at Chromium's document-request interception layer for redirects, and after top-level page changes. An empty list allows only `about:blank`. It constrains top-level documents, not CDN/API subresources loaded by an allowed page.
+The allowlist is enforced before start/navigation, by context-level routing for direct top-level documents and popups, and after top-level page changes. Chromium adds a CDP document-request check that also sees redirect hops. Camoufox sets Playwright's `serviceWorkers: 'block'` so context routing sees page requests; it checks top-level responses without following redirects and rejects every top-level HTTP redirect while an allowlist is active because Playwright invokes a route handler only for the first URL in a redirect chain. Start Camoufox at the final URL instead. An empty list allows only `about:blank`. The allowlist constrains top-level documents, not CDN/API subresources loaded by an allowed page; deployments must retain their network firewall for outbound destination control.
+
+## Browser engine
+
+Chromium remains the default. To select Camoufox in a deployment profile, set `engine: camoufox`; keep the secure deployment's allowed-origin policy and outbound firewall enabled. Build the optional image from the pinned plugin catalog after installing its pinned Camoufox browser:
+
+```sh
+npx camoufox fetch
+XDG_CACHE_HOME=/opt/camoufox/cache CAMOUFOX_FPGEN_DATA=/opt/camoufox/fpgen \
+  node scripts/prefetch-camoufox.mjs /opt/camoufox/browser-executable
+```
+
+The prefetch step verifies the executable, installs the pinned fingerprint model at build time, and launches a short-lived headless context to verify the build. At runtime `CAMOUFOX_EXECUTABLE_PATH` and `CAMOUFOX_FPGEN_DATA` point to read-only image paths. A missing binary or model fails session startup without trying to fetch data.
+
+Camoufox has no Chromium DevTools Protocol. Closed-shadow coverage is reported as `cdp-unavailable`, and visual capture supports scale `1` only. The DSH Browser context-level origin routing remains enabled; Chromium's extra per-page CDP guard is specific to Chromium.
 
 Injected `storageState` is validated the same way: every `localStorage` origin must be exactly allowlisted, and every cookie's host must map onto the host of an allowlisted origin (leading-dot domains and IP literals are checked). Cookies are host-scoped by the browser: once injected they are sent to **every port and scheme** of that host — including subresource requests to origins outside the allowlist — so the allowlist cannot narrow cookie delivery; inject cookies only for operator-owned hosts.
 
@@ -165,7 +179,7 @@ The local integration gate starts installed Chrome headlessly, runs two isolated
 
 Initial limitations are intentional and should not be read as claims:
 
-- Chromium-family browsers only; Firefox and WebKit are not implemented.
+- Chromium is the default; Camoufox is an optional Firefox-based engine. Other Firefox builds and WebKit are not supported.
 - Main-document semantic DOM projection. Any `<iframe>`/`<frame>` content — same-origin included — is out of scope for now: the observation sets `truncated` with reason `iframe-not-traversed`. Content a closed shadow root renders — including elements assigned to a slot inside one — is never pierced, only detected: with `verifyCoverage` the bounded CDP probe marks such roots with `closed-shadow-root` (see the Verified boundaries section); without it the projection covers observable semantic nodes only and makes no closed-root claim.
 - `visualObserve` performs capture only (pixels + Set-of-Mark labels); visual understanding is delegated to the DSH harness vision model.
 - The driver never attaches to an existing browser profile, browser extension, or signed-in tab. Login state can only be pre-loaded through the explicitly authorized `storageState` option (see the navigation-policy section); injected cookies are host-scoped and reach every port/scheme of their host.

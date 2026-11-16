@@ -60,6 +60,7 @@ try {
   for (const relative of [
     'lib/index.js', 'lib/index.d.ts', 'lib/driver-contract.d.ts',
     'cordis.patch.yml', 'README.md', 'README.zh.md', 'THIRD_PARTY_NOTICES.md',
+    'scripts/prefetch-camoufox.mjs',
   ]) {
     await access(join(installedRoot, relative))
   }

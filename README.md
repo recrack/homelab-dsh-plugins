@@ -1,14 +1,14 @@
 # Homelab DSH plugins
 
-This repository stores reviewed plugin package snapshots for [homelab-deepseek-harness-secure](https://github.com/recrack/homelab-deepseek-harness-secure). It owns the upstream revision records, local hardening, package build steps, and applicable notices. The secure repository owns image construction, the supported plugin ID list, persistent profile activation, and the runtime network policy.
+This repository stores reviewed plugin package snapshots for [homelab-deepseek-harness-secure](https://github.com/recrack/homelab-deepseek-harness-secure). It owns the upstream revision records, local hardening, package build steps, and applicable notices. The secure repository owns image construction, the supported plugin ID list, persistent profile activation, and the runtime network policy. The browser snapshot is maintained in the [recrack/dsh-browser fork](https://github.com/recrack/dsh-browser) of [ZSeven-W/dsh-browser](https://github.com/ZSeven-W/dsh-browser).
 
-The secure image fetches one pinned commit of this repository and builds its packages during the Docker image build. At launch, `--plugin <id>` selects packages already in the image and adds them to the persistent Web profile. The launcher does not clone plugin sources at runtime. New state directories select no optional plugins by default; existing selections persist. See the secure deployment's [plugin build and activation architecture](https://github.com/recrack/homelab-deepseek-harness-secure/blob/master/deploy/offline/README.md#build-and-activation).
+The secure image fetches one pinned commit of this repository and builds its packages during the Docker image build. The existing `dsh-browser` plugin defaults to Chromium; Camoufox is an optional engine in that same plugin and uses a separate secure deployment image with its pinned browser and fingerprint model preloaded at build time. At launch, `--plugin <id>` selects packages already in the image and adds them to the persistent Web profile. The launcher does not clone plugin sources at runtime. New state directories select no optional plugins by default; existing selections persist. See the secure deployment's [plugin build and activation architecture](https://github.com/recrack/homelab-deepseek-harness-secure/blob/master/deploy/offline/README.md#build-and-activation).
 
 ## Catalog
 
 | ID | Package | Source | Snapshot | Activation |
 | --- | --- | --- | --- | --- |
-| `dsh-browser` | `@zseven-w/dsh-browser` | [ZSeven-W/dsh-browser](https://github.com/ZSeven-W/dsh-browser) | `69fa75ac53c36c7f297fcce5ed2595fee62e068c` | Web presets |
+| `dsh-browser` | `@zseven-w/dsh-browser` | [recrack/dsh-browser](https://github.com/recrack/dsh-browser), fork of [ZSeven-W/dsh-browser](https://github.com/ZSeven-W/dsh-browser) | `808c87b1802d88069cdecc7870072454c230d472` | Web presets; optional Camoufox engine |
 | `dsh-context` | `dsh-context` | [bowenliang123/dsh-context](https://github.com/bowenliang123/dsh-context) | `0.83.0` plus the local offline patch | Web bundle |
 | `dsh-claude-artifacts` | `dsh-claude-artifacts` | [JimLiu/open-artifacts](https://github.com/JimLiu/open-artifacts) | `2.16.0`, SHA-512 pinned | Shared Web bundle |
 | `dsh-claude-slides` | `dsh-claude-slides` | [JimLiu/open-artifacts](https://github.com/JimLiu/open-artifacts) | `2.16.0`, SHA-512 pinned | Web bundle |
@@ -42,4 +42,4 @@ The secure image runs this script from its pinned checkout:
 scripts/build.sh
 ```
 
-This verifies and extracts the Open Artifacts snapshots, builds `dsh-browser`, installs the production dependencies for `dsh-crew`, and installs the production dependency for `dsh-context`. The Open Artifacts packages include their prebuilt editors and skill files.
+This verifies and extracts the Open Artifacts snapshots, builds `dsh-browser` with its pinned Camoufox runtime dependencies, installs the production dependencies for `dsh-crew`, and installs the production dependency for `dsh-context`. Browser and fingerprint-model binaries are added only by the secure deployment optional image build. The Open Artifacts packages include their prebuilt editors and skill files.
