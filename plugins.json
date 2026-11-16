@@ -5,8 +5,8 @@
       "id": "dsh-browser",
       "package": "@zseven-w/dsh-browser",
       "path": "packages/dsh-browser",
-      "upstream": "https://github.com/ZSeven-W/dsh-browser",
-      "revision": "838637338c56b777abad9e43468b59db75f777ff",
+      "upstream": "https://github.com/recrack/dsh-browser",
+      "revision": "808c87b1802d88069cdecc7870072454c230d472",
       "activation": "preset"
     },
     {

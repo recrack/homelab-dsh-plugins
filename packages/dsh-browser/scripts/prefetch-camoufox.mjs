@@ -28,12 +28,12 @@ try {
     user_data_dir: profileDir,
     executable_path: executablePath,
     geoip: false,
+    serviceWorkers: 'block',
     firefox_user_prefs: {
       'app.update.enabled': false,
       'browser.shell.checkDefaultBrowser': false,
       'datareporting.healthreport.uploadEnabled': false,
       'datareporting.policy.dataSubmissionEnabled': false,
-      'dom.serviceWorkers.enabled': false,
       'extensions.update.enabled': false,
       'toolkit.telemetry.enabled': false,
       'toolkit.telemetry.unified': false,

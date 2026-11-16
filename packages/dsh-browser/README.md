@@ -119,7 +119,7 @@ Example profile row:
     idleTimeoutMs: 900000
 ```
 
-The allowlist is enforced before start/navigation, by context-level routing for direct top-level documents and popups, and after top-level page changes. Chromium adds a CDP document-request check that also sees redirect hops. Camoufox disables Firefox service workers and checks top-level responses without following redirects; it rejects every top-level HTTP redirect while an allowlist is active because Playwright invokes a route handler only for the first URL in a redirect chain. Start Camoufox at the final URL instead. An empty list allows only `about:blank`. The allowlist constrains top-level documents, not CDN/API subresources loaded by an allowed page; deployments must retain their network firewall for outbound destination control.
+The allowlist is enforced before start/navigation, by context-level routing for direct top-level documents and popups, and after top-level page changes. Chromium adds a CDP document-request check that also sees redirect hops. Camoufox sets Playwright's `serviceWorkers: 'block'` so context routing sees page requests; it checks top-level responses without following redirects and rejects every top-level HTTP redirect while an allowlist is active because Playwright invokes a route handler only for the first URL in a redirect chain. Start Camoufox at the final URL instead. An empty list allows only `about:blank`. The allowlist constrains top-level documents, not CDN/API subresources loaded by an allowed page; deployments must retain their network firewall for outbound destination control.
 
 ## Browser engine
 
