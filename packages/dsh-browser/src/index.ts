@@ -1,6 +1,9 @@
 import { BrowserManager, type BrowserManagerOptions } from './manager.js'
+import type { BrowserEngine } from './browser-discovery.js'
 import { BROWSER_DRIVER_SERVICE, type ZSevenBrowserDriver } from './driver-contract.js'
 import { browserToolList, createBrowserTools, type StructuralToolDefinition } from './tools.js'
+
+export type { BrowserEngine } from './browser-discovery.js'
 
 export * from './browser-discovery.js'
 export * from './driver-contract.js'
@@ -37,6 +40,8 @@ export interface MountBrowserOptions {
 }
 
 export interface DshBrowserConfig {
+  /** Defaults to Chromium. Camoufox requires an image with its browser and fingerprint model preinstalled. */
+  engine?: BrowserEngine
   /** Exact navigation origins owned by the operator. Undefined is unrestricted; [] denies all web navigation. */
   allowedOrigins?: string[]
   /** Defaults to 15 minutes. Zero disables idle cleanup. */
@@ -78,6 +83,7 @@ export function mountBrowser(ctx: StructuralCordisContext, options: MountBrowser
 export function apply(ctx: StructuralCordisContext, config: DshBrowserConfig = {}): () => Promise<void> {
   return mountBrowser(ctx, {
     managerOptions: {
+      ...(config.engine === undefined ? {} : { engine: config.engine }),
       ...(config.allowedOrigins === undefined ? {} : { allowedOrigins: config.allowedOrigins }),
       ...(config.idleTimeoutMs === undefined ? {} : { idleTimeoutMs: config.idleTimeoutMs }),
     },

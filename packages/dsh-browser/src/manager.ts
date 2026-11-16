@@ -5,7 +5,8 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
 import { chromium, type BrowserContext, type CDPSession, type ElementHandle, type Page } from 'playwright-core'
-import { discoverInstalledBrowser, type BrowserExecutable } from './browser-discovery.js'
+import type { NewBrowserOptions } from 'camoufox'
+import { discoverInstalledBrowser, type BrowserEngine, type BrowserExecutable } from './browser-discovery.js'
 import type {
   BrowserAction,
   BrowserActionReceipt,
@@ -65,6 +66,7 @@ const FORCED_KILL_EXIT_POLL_MS = 4_000
  * flight; the transport dies with the browser process, so skip it after this.
  */
 const FORCED_CDP_DETACH_TIMEOUT_MS = 2_000
+const HTTP_REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308])
 /**
  * Phase C coverage probe budget: the walk stops once it has examined more
  * than this many DOM nodes (5,000), or once the whole probe — session setup,
@@ -78,10 +80,26 @@ const FORCED_CDP_DETACH_TIMEOUT_MS = 2_000
 const COVERAGE_PROBE_NODE_CAP = 5_000
 const COVERAGE_PROBE_TIME_BUDGET_MS = 250
 
+async function assertCamoufoxModelInstalled(): Promise<void> {
+  await import('camoufox')
+  const { MODEL_PIN, modelDir } = await import('fpgen-js')
+  const dir = modelDir()
+  try {
+    const { readFile, access } = await import('node:fs/promises')
+    const stamp = (await readFile(join(dir, '.pinned-model'), 'utf8')).trim()
+    if (stamp !== MODEL_PIN.sha256) throw new Error('fingerprint model stamp does not match the pinned model')
+    await Promise.all(MODEL_PIN.files.map((file) => access(join(dir, file))))
+  } catch (error) {
+    throw new Error('Camoufox fingerprint model is not installed. Preload it during image build; browser sessions never download it.', { cause: error })
+  }
+}
+
 type PersistentContextOptions = NonNullable<Parameters<typeof chromium.launchPersistentContext>[1]>
 type PersistentLauncher = (userDataDir: string, options: PersistentContextOptions) => Promise<BrowserContext>
 
 export interface BrowserManagerOptions {
+  /** Browser engine for new sessions. Camoufox needs a preinstalled browser build and fingerprint model. */
+  engine?: BrowserEngine
   rootDir?: string
   observationTtlMs?: number
   idleTimeoutMs?: number
@@ -320,6 +338,12 @@ async function pageSummary(page: Page): Promise<{ url: string; title: string }> 
   return { url, title }
 }
 
+async function pageViewportSize(page: Page): Promise<{ width: number; height: number }> {
+  const viewport = page.viewportSize()
+  if (viewport !== null) return viewport
+  return page.evaluate(() => ({ width: window.innerWidth, height: window.innerHeight }))
+}
+
 async function waitForAbortable<T>(
   promise: Promise<T>,
   signal: AbortSignal | undefined,
@@ -359,12 +383,17 @@ export class BrowserManager implements ZSevenBrowserDriver {
   readonly #maxCapturePixels: number
   readonly #maxCaptureBytes: number
   readonly #now: () => number
+  readonly #engine: BrowserEngine
   readonly #discoverBrowser: () => Promise<BrowserExecutable>
   readonly #launch: PersistentLauncher
   #disposed = false
   #disposePromise: Promise<void> | undefined
 
   constructor(options: BrowserManagerOptions = {}) {
+    if (options.engine !== undefined && options.engine !== 'chromium' && options.engine !== 'camoufox') {
+      throw new Error('dsh-browser engine must be chromium or camoufox')
+    }
+    this.#engine = options.engine ?? 'chromium'
     this.#rootDir = options.rootDir ?? join(tmpdir(), 'dsh-browser')
     this.#observationTtlMs = clampInt(options.observationTtlMs, DEFAULT_OBSERVATION_TTL_MS, 1_000, 5 * 60_000)
     this.#idleTimeoutMs = clampInt(options.idleTimeoutMs, DEFAULT_IDLE_TIMEOUT_MS, 0, 24 * 60 * 60_000)
@@ -375,9 +404,33 @@ export class BrowserManager implements ZSevenBrowserDriver {
     this.#maxCapturePixels = clampInt(options.maxCapturePixels, DEFAULT_MAX_CAPTURE_PIXELS, 1, 512 * 1024 * 1024)
     this.#maxCaptureBytes = clampInt(options.maxCaptureBytes, DEFAULT_MAX_CAPTURE_BYTES, 1, 512 * 1024 * 1024)
     this.#now = options.now ?? Date.now
-    this.#discoverBrowser = options.discoverBrowser ?? (() => discoverInstalledBrowser())
-    this.#launch = options.launchPersistentContext
-      ?? ((userDataDir, launchOptions) => chromium.launchPersistentContext(userDataDir, launchOptions))
+    this.#discoverBrowser = options.discoverBrowser ?? (() => discoverInstalledBrowser({ engine: this.#engine }))
+    this.#launch = options.launchPersistentContext ?? (async (userDataDir, launchOptions) => {
+      if (this.#engine === 'camoufox') {
+        const { Camoufox } = await import('camoufox')
+        const camoufoxOptions: NewBrowserOptions & { persistent_context: true } = {
+          persistent_context: true,
+          user_data_dir: userDataDir,
+          noViewport: true,
+          ...(launchOptions.headless === undefined ? {} : { headless: launchOptions.headless }),
+          ...(launchOptions.executablePath === undefined ? {} : { executable_path: launchOptions.executablePath }),
+          acceptDownloads: false,
+          geoip: false,
+          firefox_user_prefs: {
+            'app.update.enabled': false,
+            'browser.shell.checkDefaultBrowser': false,
+            'datareporting.healthreport.uploadEnabled': false,
+            'datareporting.policy.dataSubmissionEnabled': false,
+            'dom.serviceWorkers.enabled': false,
+            'extensions.update.enabled': false,
+            'toolkit.telemetry.enabled': false,
+            'toolkit.telemetry.unified': false,
+          },
+        }
+        return Camoufox(camoufoxOptions)
+      }
+      return chromium.launchPersistentContext(userDataDir, launchOptions)
+    })
   }
 
   readonly kind = 'browser' as const
@@ -409,6 +462,10 @@ export class BrowserManager implements ZSevenBrowserDriver {
     try {
       const executable = await waitForAbortable(this.#discoverBrowser(), operationSignal, () => {})
       if (this.#disposed || operationSignal.aborted) throw new DriverIssue('DRIVER_DISPOSED', 'browser driver was disposed while the session was starting', true)
+      if ((this.#engine === 'camoufox') !== (executable.channel === 'camoufox')) {
+        throw new Error(`The discovered ${executable.channel} browser does not match the configured ${this.#engine} engine`)
+      }
+      if (this.#engine === 'camoufox') await assertCamoufoxModelInstalled()
       await mkdir(this.#rootDir, { recursive: true })
       userDataDir = await mkdtemp(join(this.#rootDir, 'session-'))
       const launchPromise = this.#launch(userDataDir, {
@@ -483,18 +540,20 @@ export class BrowserManager implements ZSevenBrowserDriver {
       if (this.#disposed || operationSignal.aborted || session.closed) throw new DriverIssue('DRIVER_DISPOSED', 'browser driver was disposed during policy installation', true)
       // Capture the browser main-process pid while the protocol is healthy so
       // the bounded-close force kill never depends on a wedged connection.
-      try {
-        const infoSession = await context.newCDPSession(page)
+      if (this.#engine === 'chromium') {
         try {
-          const info = await infoSession.send('SystemInfo.getProcessInfo') as {
-            processInfo?: Array<{ type?: string; id?: number }>
+          const infoSession = await context.newCDPSession(page)
+          try {
+            const info = await infoSession.send('SystemInfo.getProcessInfo') as {
+              processInfo?: Array<{ type?: string; id?: number }>
+            }
+            session.browserPid = info.processInfo?.find((entry) => entry.type === 'browser')?.id
+          } finally {
+            await infoSession.detach().catch(() => {})
           }
-          session.browserPid = info.processInfo?.find((entry) => entry.type === 'browser')?.id
-        } finally {
-          await infoSession.detach().catch(() => {})
+        } catch {
+          session.browserPid = undefined
         }
-      } catch {
-        session.browserPid = undefined
       }
       for (const openPage of context.pages()) {
         this.#attachPage(session, openPage)
@@ -816,7 +875,7 @@ export class BrowserManager implements ZSevenBrowserDriver {
       const priorScopeRoot = session.lastScopeRoot
       session.lastScopeRoot = undefined
       this.#releaseScopeRoot(priorScopeRoot)
-      const viewport = session.page.viewportSize() ?? { width: 0, height: 0 }
+      const viewport = await pageViewportSize(session.page)
       const truncationReasons: string[] = []
       if (scan.scanned < scan.totalMatches) truncationReasons.push('scan-window-exceeded')
       if (nodeBudgetExceeded) truncationReasons.push('node-budget-exceeded')
@@ -913,7 +972,7 @@ export class BrowserManager implements ZSevenBrowserDriver {
         // exists, so the capture cannot be honest.
         throw new DriverIssue('OBSERVATION_STALE', 'the observed document was replaced or destroyed; observe again', true)
       })
-      const viewport = session.page.viewportSize() ?? { width: 0, height: 0 }
+      const viewport = await pageViewportSize(session.page)
       const captureWidth = fullPage ? measured.docWidth : viewport.width
       const captureHeight = fullPage ? measured.docHeight : viewport.height
       if (captureWidth <= 0 || captureHeight <= 0) throw new DriverIssue('CAPTURE_EMPTY', 'the page has no renderable area to capture', true)
@@ -1641,6 +1700,9 @@ export class BrowserManager implements ZSevenBrowserDriver {
     if (scale === 1) {
       return session.page.screenshot({ type: 'png', fullPage })
     }
+    if (this.#engine === 'camoufox') {
+      throw new DriverIssue('CAPTURE_SCALE_UNSUPPORTED', 'Camoufox supports visual capture at scale 1 only', true)
+    }
     // Numeric scale is honored through CDP so the PNG is genuinely rendered at
     // the requested device pixel ratio, and mark frames are reported in those
     // native pixels. Playwright's own screenshot only supports 1x vs device.
@@ -1665,6 +1727,7 @@ export class BrowserManager implements ZSevenBrowserDriver {
    * released and the next probe creates a fresh one.
    */
   async #coverageSession(session: ManagedSession): Promise<CDPSession> {
+    if (this.#engine === 'camoufox') throw new Error('closed-shadow coverage requires Chromium DevTools Protocol')
     if (session.coverageCdp !== undefined && session.coverageCdpPage === session.page) return session.coverageCdp
     if (session.coverageCdp !== undefined) {
       void session.coverageCdp.detach().catch(() => {})
@@ -1900,10 +1963,8 @@ export class BrowserManager implements ZSevenBrowserDriver {
 
   async #installOriginPolicy(session: ManagedSession): Promise<void> {
     if (this.#allowedOrigins === undefined) return
-    // Context-wide interception exists before any plugin-triggered navigation
-    // or popup. Unlike per-page CDP setup, this catches a popup's very first
-    // target=_blank/window.open document request before that page can become
-    // the active controllable page.
+    // Context-wide interception enforces the origin policy for every engine,
+    // including the first target=_blank/window.open request from a popup.
     await session.context.route('**/*', async (route) => {
       const request = route.request()
       if (!request.isNavigationRequest()) {
@@ -1918,9 +1979,32 @@ export class BrowserManager implements ZSevenBrowserDriver {
         this.#scheduleClose(session)
         return
       }
+      if (topLevel && this.#engine === 'camoufox') {
+        let response
+        try {
+          response = await route.fetch({ maxRedirects: 0 })
+        } catch {
+          await route.abort('failed').catch(() => {})
+          return
+        }
+        const location = response.headers()['location']
+        if (HTTP_REDIRECT_STATUSES.has(response.status()) && location !== undefined) {
+          let destination = request.url()
+          try { destination = new URL(location, request.url()).href } catch { /* report the original URL if Location is malformed */ }
+          this.#pushConsole(session, 'origin-policy', `blocked top-level redirect in Camoufox: ${publicPageUrl(destination)}`, destination)
+          await response.dispose()
+          await route.abort('blockedbyclient').catch(() => {})
+          this.#scheduleClose(session)
+          return
+        }
+        await route.fulfill({ response }).catch(() => {})
+        return
+      }
       await route.continue().catch(() => {})
     })
-    await Promise.all(session.context.pages().map((page) => this.#installPageOriginPolicy(session, page)))
+    if (this.#engine === 'chromium') {
+      await Promise.all(session.context.pages().map((page) => this.#installPageOriginPolicy(session, page)))
+    }
   }
 
   async #adoptPage(session: ManagedSession, page: Page): Promise<void> {
@@ -1930,7 +2014,7 @@ export class BrowserManager implements ZSevenBrowserDriver {
         if (!session.closed) this.#scheduleClose(session)
         return
       }
-      await this.#installPageOriginPolicy(session, page)
+      if (this.#engine === 'chromium') await this.#installPageOriginPolicy(session, page)
       if (session.closed || page.isClosed() || !this.#originAllowed(page.url())) {
         await page.close().catch(() => {})
         if (!session.closed) this.#scheduleClose(session)

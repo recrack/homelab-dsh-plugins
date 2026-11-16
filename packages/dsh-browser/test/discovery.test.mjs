@@ -1,6 +1,9 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { browserCandidates } from '../lib/index.js'
+import { mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { browserCandidates, discoverInstalledBrowser } from '../lib/index.js'
 
 test('browser discovery covers Chrome, Edge, Chromium and operator override on macOS', () => {
   const rows = browserCandidates({ platform: 'darwin', home: '/Users/tester', env: { DSHPLUGIN_BROWSER_EXECUTABLE_PATH: '/opt/browser' } })
@@ -19,4 +22,20 @@ test('browser discovery constructs Windows candidates without host-path leakage'
   })
   assert.ok(rows.some((row) => row.path === 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'))
   assert.ok(rows.some((row) => row.path.endsWith('Microsoft\\Edge\\Application\\msedge.exe')))
+})
+
+test('Camoufox discovery uses an explicit executable without trying to fetch a browser', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'dsh-browser-camoufox-discovery-'))
+  const executablePath = join(root, 'camoufox')
+  try {
+    await writeFile(executablePath, 'binary')
+    const found = await discoverInstalledBrowser({
+      engine: 'camoufox',
+      platform: 'win32',
+      env: { CAMOUFOX_EXECUTABLE_PATH: executablePath },
+    })
+    assert.deepEqual(found, { path: executablePath, channel: 'camoufox' })
+  } finally {
+    await rm(root, { recursive: true, force: true })
+  }
 })

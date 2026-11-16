@@ -7,7 +7,8 @@ import { pluginEnv, pluginEnvName } from './plugin-env.js'
 /** Suffix of the operator-only executable-path override (see plugin-env.ts). */
 export const BROWSER_EXECUTABLE_PATH_ENV_SUFFIX = 'BROWSER_EXECUTABLE_PATH'
 
-export type BrowserChannel = 'chrome' | 'edge' | 'chromium' | 'custom'
+export type BrowserEngine = 'chromium' | 'camoufox'
+export type BrowserChannel = 'chrome' | 'edge' | 'chromium' | 'custom' | 'camoufox'
 
 export interface BrowserExecutable {
   path: string
@@ -15,6 +16,7 @@ export interface BrowserExecutable {
 }
 
 export interface BrowserDiscoveryInput {
+  engine?: BrowserEngine
   platform?: NodeJS.Platform
   env?: NodeJS.ProcessEnv
   home?: string
@@ -71,12 +73,27 @@ export function browserCandidates(input: BrowserDiscoveryInput = {}): BrowserExe
 }
 
 export async function discoverInstalledBrowser(input: BrowserDiscoveryInput = {}): Promise<BrowserExecutable> {
+  const engine = input.engine ?? 'chromium'
+  if (engine === 'camoufox') {
+    const env = input.env ?? process.env
+    const override = pluginEnv(BROWSER_EXECUTABLE_PATH_ENV_SUFFIX, { env })?.trim()
+      || env.CAMOUFOX_EXECUTABLE_PATH?.trim()
+    if (override) return await assertExecutable(override, 'camoufox', input.platform ?? process.platform)
+
+    const [{ getActivePath }, { launchPath }] = await Promise.all([
+      import('camoufox/dist/multiversion.js'),
+      import('camoufox/dist/pkgman.js'),
+    ])
+    const activePath = getActivePath()
+    if (activePath === null) {
+      throw new Error('No active Camoufox build is installed. Install it during image build with `camoufox fetch`.')
+    }
+    return await assertExecutable(launchPath(activePath), 'camoufox', input.platform ?? process.platform)
+  }
+
   for (const candidate of browserCandidates(input)) {
     try {
-      const info = await stat(candidate.path)
-      if (!info.isFile()) continue
-      await access(candidate.path, process.platform === 'win32' ? constants.F_OK : constants.X_OK)
-      return candidate
+      return await assertExecutable(candidate.path, candidate.channel, input.platform ?? process.platform)
     } catch {
       // Try the next known installed-browser location.
     }
@@ -85,4 +102,11 @@ export async function discoverInstalledBrowser(input: BrowserDiscoveryInput = {}
     'No supported browser executable was found. Install Google Chrome, Microsoft Edge, or Chromium; '
       + `operators may set ${pluginEnvName(BROWSER_EXECUTABLE_PATH_ENV_SUFFIX)} to an absolute browser executable.`,
   )
+}
+
+async function assertExecutable(path: string, channel: BrowserChannel, platform: NodeJS.Platform): Promise<BrowserExecutable> {
+  const info = await stat(path)
+  if (!info.isFile()) throw new Error(`Browser executable is not a file: ${path}`)
+  await access(path, platform === 'win32' ? constants.F_OK : constants.X_OK)
+  return { path, channel }
 }

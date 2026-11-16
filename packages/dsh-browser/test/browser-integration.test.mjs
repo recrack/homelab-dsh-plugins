@@ -1,9 +1,11 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { createServer } from 'node:http'
-import { mkdtemp, readdir, rm } from 'node:fs/promises'
+import { mkdir, mkdtemp, readdir, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { MODEL_PIN } from 'fpgen-js'
+import { chromium } from 'playwright-core'
 import { BrowserManager, discoverInstalledBrowser } from '../lib/index.js'
 
 async function listen(server) {
@@ -265,6 +267,102 @@ test('real managed browser isolates agents, re-resolves refs, rejects risk, boun
     outsideServer.closeAllConnections?.()
     await new Promise((resolve) => outsideServer.close(resolve))
     const leftovers = await readdir(rootDir)
+    assert.deepEqual(leftovers, [])
+    await rm(rootDir, { recursive: true, force: true })
+  }
+})
+
+test('Camoufox engine keeps context-route origin enforcement for redirects and popups', { timeout: 60_000 }, async (t) => {
+  let chromiumExecutable
+  try { chromiumExecutable = await discoverInstalledBrowser() } catch (error) {
+    t.skip(`installed Chromium-family browser unavailable for the route-policy adapter test: ${error.message}`)
+    return
+  }
+
+  let port = 0
+  let blockedHits = 0
+  let sameOriginRedirectTargetHits = 0
+  const server = createServer((_req, res) => {
+    const requestUrl = new URL(_req.url, `http://127.0.0.1:${port}`)
+    if (requestUrl.pathname === '/redirect') {
+      res.writeHead(302, { location: `http://localhost:${port}/blocked` })
+      res.end()
+      return
+    }
+    if (requestUrl.pathname === '/same-origin-redirect') {
+      res.writeHead(302, { location: `${origin}/same-origin-final` })
+      res.end()
+      return
+    }
+    if (requestUrl.pathname === '/same-origin-final') {
+      sameOriginRedirectTargetHits += 1
+      res.writeHead(200, { 'content-type': 'text/plain' })
+      res.end('should not load')
+      return
+    }
+    if (requestUrl.pathname === '/blocked') {
+      blockedHits += 1
+      res.writeHead(200, { 'content-type': 'text/plain' })
+      res.end('should not load')
+      return
+    }
+    res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' })
+    res.end('<!doctype html><button onclick="window.open(\'http://localhost:' + port + '/blocked\', \'_blank\')">Open popup</button>')
+  })
+  port = await listen(server)
+  const origin = `http://127.0.0.1:${port}`
+  const rootDir = await mkdtemp(join(tmpdir(), 'dsh-browser-camoufox-policy-'))
+  const modelDir = join(rootDir, 'fpgen')
+  const browserRoot = join(rootDir, 'browser-profiles')
+  await mkdir(modelDir)
+  await writeFile(join(modelDir, '.pinned-model'), `${MODEL_PIN.sha256}\n`)
+  await Promise.all(MODEL_PIN.files.map((file) => writeFile(join(modelDir, file), 'fixture')))
+  const previousModelDir = process.env.CAMOUFOX_FPGEN_DATA
+  process.env.CAMOUFOX_FPGEN_DATA = modelDir
+  const manager = new BrowserManager({
+    engine: 'camoufox',
+    rootDir: browserRoot,
+    allowedOrigins: [origin],
+    discoverBrowser: async () => ({ path: chromiumExecutable.path, channel: 'camoufox' }),
+    launchPersistentContext: (userDataDir, options) => chromium.launchPersistentContext(userDataDir, options),
+  })
+  try {
+    await manager.start('redirect', { url: origin })
+    const redirected = await manager.act('redirect', { kind: 'navigate', url: `${origin}/redirect` })
+    assert.notEqual(redirected.status, 'confirmed')
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    assert.equal(blockedHits, 0, 'redirect reached the disallowed origin')
+
+    await manager.start('same-origin-redirect', { url: origin })
+    const sameOriginRedirected = await manager.act('same-origin-redirect', { kind: 'navigate', url: `${origin}/same-origin-redirect` })
+    assert.notEqual(sameOriginRedirected.status, 'confirmed')
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    assert.equal(sameOriginRedirectTargetHits, 0, 'Camoufox followed a redirect that its context route could not inspect')
+
+    await manager.start('capabilities', { url: origin })
+    const coverage = await manager.observe('capabilities', { verifyCoverage: true })
+    assert.deepEqual(coverage.coverage, { verified: false, reason: 'cdp-unavailable', closedShadowRoots: 0, probedNodes: 0 })
+    await assert.rejects(
+      manager.visualObserve('capabilities', { scale: 2 }),
+      (error) => error.code === 'CAPTURE_SCALE_UNSUPPORTED',
+    )
+    await manager.stop('capabilities')
+
+    await manager.start('popup', { url: origin })
+    const observation = await manager.observe('popup')
+    const trigger = observation.nodes.find((node) => node.name === 'Open popup')
+    assert.ok(trigger)
+    const popup = await manager.act('popup', { kind: 'click', ref: trigger.ref })
+    assert.notEqual(popup.status, 'confirmed')
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    assert.equal(blockedHits, 0, 'popup reached the disallowed origin')
+  } finally {
+    await manager.dispose()
+    if (previousModelDir === undefined) delete process.env.CAMOUFOX_FPGEN_DATA
+    else process.env.CAMOUFOX_FPGEN_DATA = previousModelDir
+    server.closeAllConnections?.()
+    await new Promise((resolve) => server.close(resolve))
+    const leftovers = await readdir(browserRoot)
     assert.deepEqual(leftovers, [])
     await rm(rootDir, { recursive: true, force: true })
   }
