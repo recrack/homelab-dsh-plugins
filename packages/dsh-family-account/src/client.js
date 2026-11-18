@@ -3,8 +3,7 @@
 const React = require('react');
 const ReactDOM = require('react-dom');
 const h = React.createElement;
-const CHANNEL = 'homelab-dsh-family';
-const VERSION = 1;
+const WORKSPACE_API = '/api/family/workspace';
 const listeners = new Set();
 let portalState = { account: null, approvalState: { status: 'loading' }, approvalBusyId: '', approvalNotice: '', logoutPending: false, logoutNotice: '' };
 
@@ -35,11 +34,7 @@ function isPortalState(value) {
     && typeof value.account.isAdmin === 'boolean'
     && Array.isArray(value.account.plugins) && value.account.plugins.length <= 20
     && value.account.plugins.every(plugin => typeof plugin === 'string' && plugin.length <= 80)
-    && isApprovalState(value.approvalState)
-    && typeof value.approvalBusyId === 'string' && value.approvalBusyId.length <= 64
-    && typeof value.approvalNotice === 'string' && value.approvalNotice.length <= 200
-    && typeof value.logoutPending === 'boolean'
-    && typeof value.logoutNotice === 'string' && value.logoutNotice.length <= 200;
+    && isApprovalState(value.approvalState);
 }
 
 function publish(next) {
@@ -58,9 +53,58 @@ function usePortalState() {
   return snapshot;
 }
 
-function sendToPortal(type, fields = {}) {
-  if (window.parent === window) return;
-  window.parent.postMessage({ channel: CHANNEL, version: VERSION, type, ...fields }, window.location.origin);
+async function refreshPortalState(signal) {
+  const response = await fetch(WORKSPACE_API, { signal });
+  if (response.status === 401) {
+    window.location.replace('/');
+    return;
+  }
+  if (!response.ok) throw new Error('Workspace status is unavailable');
+  const state = await response.json();
+  if (!isPortalState(state)) throw new Error('Invalid workspace status');
+  if (!signal?.aborted) publish({ ...portalState, ...state });
+}
+
+async function decideApproval(requestId, decision) {
+  if (portalState.approvalBusyId) return;
+  publish({ ...portalState, approvalBusyId: requestId, approvalNotice: '' });
+  try {
+    const response = await fetch(WORKSPACE_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ requestId, decision }),
+    });
+    if (!response.ok) throw new Error('Could not decide approval');
+    await refreshPortalState();
+    publish({ ...portalState, approvalNotice: decision === 'allow' ? '검색 요청을 허용했습니다.' : '검색 요청을 거부했습니다.' });
+  } catch {
+    publish({ ...portalState, approvalNotice: '요청을 처리할 수 없습니다. 목록을 새로 확인해 주세요.' });
+  } finally {
+    publish({ ...portalState, approvalBusyId: '' });
+  }
+}
+
+async function signOut() {
+  if (portalState.logoutPending) return;
+  publish({ ...portalState, logoutPending: true, logoutNotice: '' });
+  try {
+    const response = await fetch('/api/auth/sign-out', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: '{}',
+    });
+    if (!response.ok) throw new Error('Could not sign out');
+  } catch {
+    publish({ ...portalState, logoutPending: false, logoutNotice: '로그아웃하지 못했습니다. 다시 시도해 주세요.' });
+    return;
+  }
+  if (typeof BroadcastChannel !== 'undefined') {
+    const channel = new BroadcastChannel('family-portal-session');
+    channel.postMessage('session-changed');
+    channel.close();
+  }
+  try { localStorage.clear(); sessionStorage.clear(); } catch (error) { /* Browser storage can be disabled. */ }
+  window.location.replace('/');
 }
 
 function updatePosition(anchor, setPosition) {
@@ -154,7 +198,7 @@ function AccountAction({ wide }) {
     account.isAdmin ? h('button', {
       className: 'dsh-family-account__action',
       type: 'button',
-      onClick: () => { setOpen(false); sendToPortal('open-admin'); },
+      onClick: () => { setOpen(false); window.location.assign('/admin'); },
       key: 'admin',
     }, '관리자 설정') : null,
     h('p', { className: 'dsh-family-account__notice', role: 'status', key: 'notice' }, state.logoutNotice),
@@ -162,7 +206,7 @@ function AccountAction({ wide }) {
       className: 'dsh-family-account__action dsh-family-account__action--danger',
       type: 'button',
       disabled: state.logoutPending,
-      onClick: () => sendToPortal('logout'),
+      onClick: () => void signOut(),
       key: 'logout',
     }, state.logoutPending ? '로그아웃 중…' : '로그아웃'),
   ]), document.body) : null;
@@ -217,7 +261,6 @@ function SearchApprovalDock() {
     h('a', {
       className: 'dsh-family-search__settings',
       href: '/family/search-approval',
-      target: '_top',
       key: 'settings',
     }, '검색 자동 승인 설정'),
     h('p', { className: 'dsh-family-search__intro', key: 'intro' }, '검색어는 설정된 검색 서비스로 전달될 수 있습니다. 대화와 파일은 전송하지 않습니다.'),
@@ -238,13 +281,13 @@ function SearchApprovalDock() {
             h('button', {
               type: 'button',
               disabled: state.approvalBusyId !== '',
-              onClick: () => sendToPortal('decide-search', { requestId: request.id, decision: 'allow' }),
+              onClick: () => void decideApproval(request.id, 'allow'),
               key: 'allow',
             }, state.approvalBusyId === request.id ? '처리 중…' : '허용'),
             h('button', {
               type: 'button',
               disabled: state.approvalBusyId !== '',
-              onClick: () => sendToPortal('decide-search', { requestId: request.id, decision: 'deny' }),
+              onClick: () => void decideApproval(request.id, 'deny'),
               key: 'deny',
             }, '거부'),
           ]),
@@ -333,17 +376,28 @@ function apply(ctx) {
   }, 'dsh-family-account: styles');
 
   ctx.effect(() => {
-    const onMessage = event => {
-      if (event.origin !== window.location.origin || event.source !== window.parent) return;
-      const value = event.data;
-      if (!isRecord(value) || value.channel !== CHANNEL || value.version !== VERSION || value.type !== 'portal-state') return;
-      if (!isPortalState(value.state)) return;
-      publish(value.state);
+    const controller = new AbortController();
+    let loading = false;
+    const refresh = async () => {
+      if (document.visibilityState !== 'visible' || loading) return;
+      loading = true;
+      try {
+        await refreshPortalState(controller.signal);
+      } catch {
+        if (!controller.signal.aborted) publish({ ...portalState, approvalState: { status: 'unavailable' } });
+      } finally {
+        loading = false;
+      }
     };
-    window.addEventListener('message', onMessage);
-    sendToPortal('ready');
-    return () => window.removeEventListener('message', onMessage);
-  }, 'dsh-family-account: portal bridge');
+    void refresh();
+    document.addEventListener('visibilitychange', refresh);
+    const interval = window.setInterval(refresh, 2000);
+    return () => {
+      controller.abort();
+      window.clearInterval(interval);
+      document.removeEventListener('visibilitychange', refresh);
+    };
+  }, 'dsh-family-account: portal state');
 
   ctx.slots.inject('sidebar.footer.action', () => ctx.slots.register({
     name: 'sidebar.footer.action',
