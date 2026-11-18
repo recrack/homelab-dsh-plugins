@@ -153,6 +153,12 @@ function AccountAction({ wide }) {
         ? h('p', { className: 'dsh-family-account__empty', key: 'empty' }, '활성 플러그인이 없습니다.')
         : h('ul', { key: 'list' }, account.plugins.map((plugin, index) => h('li', { key: `${index}-${plugin}` }, plugin))),
     ]),
+    h('a', {
+      className: 'dsh-family-account__action',
+      href: '/family/search-approval',
+      target: '_top',
+      key: 'search-settings',
+    }, '검색 승인 설정'),
     account.isAdmin ? h('button', {
       className: 'dsh-family-account__action',
       type: 'button',
@@ -211,7 +217,7 @@ function SearchApprovalDock() {
       h('strong', { key: 'title' }, '검색 승인'),
       h('button', { type: 'button', 'aria-label': '닫기', onClick: () => setOpen(false), key: 'close' }, '×'),
     ]),
-    h('p', { className: 'dsh-family-search__intro', key: 'intro' }, '허용하면 표시된 검색어 또는 URL만 공개 검색 제공자에 전달됩니다. 대화와 파일은 보내지 않습니다.'),
+    h('p', { className: 'dsh-family-search__intro', key: 'intro' }, '검색어는 로컬 검색 엔진으로, URL은 수집기로 전달합니다. 검색 엔진은 설정된 공개 검색 서비스에 질의할 수 있습니다. 대화와 파일은 보내지 않습니다.'),
     state.approvalNotice ? h('p', { className: 'dsh-family-search__notice', role: 'status', key: 'notice' }, state.approvalNotice) : null,
     unavailable
       ? h('p', { className: 'dsh-family-search__empty', key: 'unavailable' }, '검색 승인 서비스에 연결할 수 없습니다. 페이지를 새로고침해 주세요.')
@@ -280,7 +286,7 @@ const styleText = `
 .dsh-family-account__features ul{display:flex;flex-wrap:wrap;gap:6px;margin:0;padding:0;list-style:none}
 .dsh-family-account__features li{padding:6px 9px;border:1px solid #3d4047;border-radius:999px;color:#e2e4e8;background:#292b30;font-size:12px}
 .dsh-family-account__empty,.dsh-family-search__empty{margin:8px 0 0;padding:11px;border-radius:9px;color:#c4c8d0;background:#292b30;line-height:1.5}
-.dsh-family-account__action{display:flex;width:100%;min-height:42px;align-items:center;justify-content:center;margin-top:10px;padding:0 12px;border:1px solid #45484e;border-radius:9px;color:#e6e8ec;background:#292b30;font:500 13px system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;cursor:pointer}
+.dsh-family-account__action{display:flex;width:100%;min-height:42px;align-items:center;justify-content:center;margin-top:10px;padding:0 12px;border:1px solid #45484e;border-radius:9px;color:#e6e8ec;background:#292b30;font:500 13px system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;text-decoration:none;cursor:pointer}
 .dsh-family-account__action--danger{border-color:#68434a;color:#ffdadf;background:#39272b}
 .dsh-family-account__action:disabled,.dsh-family-search__actions button:disabled{cursor:wait;opacity:.6}
 .dsh-family-account__notice,.dsh-family-search__notice{margin:8px 0 0;color:#ffb4ab;font-size:12px;line-height:1.5}
