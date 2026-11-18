@@ -151,12 +151,6 @@ function AccountAction({ wide }) {
         ? h('p', { className: 'dsh-family-account__empty', key: 'empty' }, '활성 플러그인이 없습니다.')
         : h('ul', { key: 'list' }, account.plugins.map((plugin, index) => h('li', { key: `${index}-${plugin}` }, plugin))),
     ]),
-    h('a', {
-      className: 'dsh-family-account__action',
-      href: '/family/search-approval',
-      target: '_top',
-      key: 'search-settings',
-    }, '검색 승인 설정'),
     account.isAdmin ? h('button', {
       className: 'dsh-family-account__action',
       type: 'button',
@@ -198,29 +192,42 @@ function SearchApprovalDock() {
     }
   }, [requests]);
 
-  if (pendingCount === 0 && !unavailable) return null;
+  if (state.account === null) return null;
   const toggle = () => {
     if (!open && anchorRef.current) updatePosition(anchorRef.current, setPosition);
     setOpen(current => !current);
   };
-  const label = unavailable ? '검색 승인 연결 확인' : `검색 승인 필요 · ${pendingCount}`;
+  const label = unavailable
+    ? '검색 승인 연결 확인'
+    : approval.status === 'loading' ? '검색 상태 확인 중'
+      : approval.status === 'disabled' ? '검색 기능 꺼짐'
+        : pendingCount > 0 ? `검색 승인 필요 · ${pendingCount}` : '검색 승인 설정';
   const panel = open ? ReactDOM.createPortal(h('section', {
     ref: panelRef,
     className: 'dsh-family-search__panel',
     role: 'dialog',
     'aria-label': '검색 승인 요청',
+    id: 'dsh-family-search-approval-panel',
     style: position,
   }, [
     h('header', { className: 'dsh-family-search__head', key: 'head' }, [
       h('strong', { key: 'title' }, '검색 승인'),
       h('button', { type: 'button', 'aria-label': '닫기', onClick: () => setOpen(false), key: 'close' }, '×'),
     ]),
-    h('p', { className: 'dsh-family-search__intro', key: 'intro' }, '검색어는 로컬 검색 엔진으로, URL은 수집기로 전달합니다. 검색 엔진은 설정된 공개 검색 서비스에 질의할 수 있습니다. 대화와 파일은 보내지 않습니다.'),
+    h('a', {
+      className: 'dsh-family-search__settings',
+      href: '/family/search-approval',
+      target: '_top',
+      key: 'settings',
+    }, '검색 자동 승인 설정'),
+    h('p', { className: 'dsh-family-search__intro', key: 'intro' }, '검색어는 설정된 검색 서비스로 전달될 수 있습니다. 대화와 파일은 전송하지 않습니다.'),
     state.approvalNotice ? h('p', { className: 'dsh-family-search__notice', role: 'status', key: 'notice' }, state.approvalNotice) : null,
     unavailable
       ? h('p', { className: 'dsh-family-search__empty', key: 'unavailable' }, '검색 승인 서비스에 연결할 수 없습니다. 페이지를 새로고침해 주세요.')
       : requests.length === 0
-        ? h('p', { className: 'dsh-family-search__empty', key: 'empty' }, '대기 중인 검색 요청이 없습니다.')
+        ? h('p', { className: 'dsh-family-search__empty', key: 'empty' }, approval.status === 'disabled'
+          ? '이 작업공간에서 검색 기능을 사용할 수 없습니다.'
+          : '승인 대기 중인 요청이 없습니다.')
         : h('ul', { className: 'dsh-family-search__list', key: 'requests' }, requests.map(request => h('li', { key: request.id }, [
           h('div', { className: 'dsh-family-search__request-title', key: 'title' }, [
             h('strong', { key: 'kind' }, request.operation === 'search' ? '검색어' : '가져올 URL'),
@@ -248,7 +255,7 @@ function SearchApprovalDock() {
     h('button', {
       ref: anchorRef,
       type: 'button',
-      className: `dsh-family-search__trigger${unavailable ? ' dsh-family-search__trigger--error' : ''}`,
+      className: `dsh-family-search__trigger${pendingCount > 0 ? ' dsh-family-search__trigger--pending' : ''}${unavailable ? ' dsh-family-search__trigger--error' : ''}${approval.status === 'disabled' ? ' dsh-family-search__trigger--disabled' : ''}`,
       'aria-label': label,
       'aria-haspopup': 'dialog',
       'aria-expanded': open,
@@ -256,7 +263,7 @@ function SearchApprovalDock() {
       onClick: toggle,
       key: 'trigger',
     }, [
-      h('span', { 'aria-hidden': 'true', key: 'icon' }, '!'),
+      h('span', { 'aria-hidden': 'true', key: 'icon' }, pendingCount > 0 || unavailable ? '!' : approval.status === 'disabled' ? '–' : '✓'),
       h('span', { key: 'label' }, label),
     ]),
     panel,
@@ -267,7 +274,7 @@ const styleText = `
 .dsh-family-account__trigger{box-sizing:border-box;display:flex;align-items:center;gap:10px;width:100%;min-width:0;min-height:46px;padding:5px 10px;border:1px solid transparent;border-radius:10px;color:#e8eaf0;background:transparent;text-align:left;cursor:pointer}
 .dsh-family-account__trigger[aria-expanded=true]{background:#292b30}
 .dsh-family-account__trigger:focus-visible,.dsh-family-account__close:focus-visible,.dsh-family-account__action:focus-visible,.dsh-family-search__trigger:focus-visible,.dsh-family-search__head button:focus-visible,.dsh-family-search__actions button:focus-visible{outline:2px solid #91b4ff;outline-offset:2px}
-@media(hover:hover){.dsh-family-account__trigger:hover{background:#292b30}.dsh-family-search__trigger:hover{border-color:#d49238;background:#49361e}}
+@media(hover:hover){.dsh-family-account__trigger:hover{background:#292b30}.dsh-family-search__trigger:hover{border-color:#555961;background:#303238}.dsh-family-search__trigger--pending:hover{border-color:#d49238;background:#49361e}.dsh-family-search__trigger--error:hover{border-color:#b96b74;background:#4a2d32}}
 .dsh-family-account__trigger--rail{width:42px;min-height:42px;justify-content:center;padding:3px}
 .dsh-family-account__avatar{display:grid;width:32px;height:32px;flex:none;place-items:center;border-radius:9px;color:#fff;background:#416fe8;font-size:14px;font-weight:500;text-transform:uppercase}
 .dsh-family-account__identity{display:grid;min-width:0;flex:1;gap:2px}
@@ -288,12 +295,21 @@ const styleText = `
 .dsh-family-account__action--danger{border-color:#68434a;color:#ffdadf;background:#39272b}
 .dsh-family-account__action:disabled,.dsh-family-search__actions button:disabled{cursor:wait;opacity:.6}
 .dsh-family-account__notice,.dsh-family-search__notice{margin:8px 0 0;color:#ffb4ab;font-size:12px;line-height:1.5}
-.dsh-family-search__trigger{box-sizing:border-box;display:inline-flex;min-height:30px;align-items:center;gap:7px;padding:4px 10px;border:1px solid #8c5b22;border-radius:999px;color:#ffe0b2;background:#382c1c;font:500 12px/1.3 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;cursor:pointer}
-.dsh-family-search__trigger[aria-expanded=true]{border-color:#d49238;background:#49361e}
+.dsh-family-search__trigger{box-sizing:border-box;display:inline-flex;min-height:40px;align-items:center;gap:8px;padding:6px 12px;border:1px solid #45484e;border-radius:999px;color:#e6e8ec;background:#25272b;font:500 12px/1.3 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;cursor:pointer}
+.dsh-family-search__trigger[aria-expanded=true]{border-color:#7794df;background:#303746}
+.dsh-family-search__trigger--pending{border-color:#8c5b22;color:#ffe0b2;background:#382c1c}
+.dsh-family-search__trigger--pending[aria-expanded=true]{border-color:#d49238;background:#49361e}
+.dsh-family-search__trigger[aria-expanded=true]:focus-visible{outline-offset:3px}
 .dsh-family-search__trigger--error{border-color:#8a4650;color:#ffd7dc;background:#3b252a}
-.dsh-family-search__trigger span:first-child{display:grid;width:18px;height:18px;place-items:center;border-radius:50%;color:#241b10;background:#ffbf66;font-size:11px;font-weight:500}
+.dsh-family-search__trigger span:first-child{display:grid;width:18px;height:18px;place-items:center;border-radius:50%;color:#dce6ff;background:#364a75;font-size:11px;font-weight:500}
+.dsh-family-search__trigger:not(.dsh-family-search__trigger--error) span:first-child{color:#b9f1d2;background:#244c38}
+.dsh-family-search__trigger--pending span:first-child{color:#241b10;background:#ffbf66}
 .dsh-family-search__trigger--error span:first-child{color:#291417;background:#ff9aa5}
+.dsh-family-search__trigger--disabled{border-color:#45484e;color:#aeb4bf;background:#202125}
+.dsh-family-search__trigger--disabled span:first-child{color:#d5d8de;background:#42464d}
 .dsh-family-search__intro{margin:10px 0 0;color:#c3c7ce;font-size:12px;line-height:1.5}
+.dsh-family-search__settings{display:flex;min-height:42px;align-items:center;justify-content:center;margin-top:10px;padding:0 12px;border:1px solid #45484e;border-radius:9px;color:#e6e8ec;background:#292b30;font:500 12px system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;text-decoration:none}
+.dsh-family-search__settings:focus-visible{outline:2px solid #91b4ff;outline-offset:2px}
 .dsh-family-search__list{display:grid;gap:10px;margin:10px 0 0;padding:0;list-style:none}
 .dsh-family-search__list li{display:grid;gap:7px;padding:10px;border:1px solid #45484e;border-radius:10px}
 .dsh-family-search__request-title{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
@@ -302,6 +318,7 @@ const styleText = `
 .dsh-family-search__actions{display:flex;justify-content:flex-end;gap:8px}
 .dsh-family-search__actions button{min-width:76px;min-height:38px;padding:0 11px;border:1px solid #555961;border-radius:8px;color:#f2f3f5;background:#2b2d32;font:500 12px system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;cursor:pointer}
 .dsh-family-search__actions button:first-child{border-color:#416fe8;background:#315cc4}
+@media(pointer:coarse){.dsh-family-search__trigger,.dsh-family-search__settings,.dsh-family-search__head button,.dsh-family-search__actions button{min-height:48px}}
 @media(prefers-reduced-motion:no-preference){.dsh-family-search__trigger:not([aria-expanded=true]){animation:dsh-family-search-pulse 1.8s ease-in-out 2}@keyframes dsh-family-search-pulse{50%{box-shadow:0 0 0 4px #ffbf6633}}}
 `;
 
