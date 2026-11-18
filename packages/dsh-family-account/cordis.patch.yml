@@ -1,0 +1,4 @@
+# Adds the family account/sidebar controls to every family Web profile.
+- insert:
+    - id: dsh-family-account
+      name: dsh-family-account

@@ -2,6 +2,14 @@
   "schemaVersion": 1,
   "plugins": [
     {
+      "id": "dsh-family-account",
+      "package": "dsh-family-account",
+      "path": "packages/dsh-family-account",
+      "upstream": "https://github.com/recrack/homelab-dsh-plugins",
+      "revision": "0.1.0",
+      "activation": "bundle"
+    },
+    {
       "id": "dsh-browser",
       "package": "@zseven-w/dsh-browser",
       "path": "packages/dsh-browser",
