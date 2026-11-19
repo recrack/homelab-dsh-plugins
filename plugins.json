@@ -137,7 +137,7 @@
       "upstream": "https://github.com/topmindspace/dsh-super-kanban",
       "revision": "f8d462a08bb1079936d88414fc1e86eca4b0cfa1",
       "activation": "bundle",
-      "localHardening": "Defaults automatic session scanning to disabled."
+      "localHardening": "Defaults automatic session scanning to disabled and uses DSH Web route owner admission."
     }
   ]
 }

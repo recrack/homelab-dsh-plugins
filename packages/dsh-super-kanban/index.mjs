@@ -6,7 +6,6 @@
  * which owns session scanning, AI analysis, storage and the board state.
  */
 import { createKanbanService } from "./server/service.mjs";
-import { ownerAdmission } from "./server/auth.mjs";
 
 export const name = "super-kanban";
 
@@ -37,20 +36,16 @@ export function apply(ctx) {
     };
   }, "super-kanban: service lifetime");
 
-  ctx.inject(["connection", "webServer"], (webCtx) => {
+  ctx.inject(["webServer"], (webCtx) => {
     webCtx.effect(
       () =>
         webCtx.webServer.register({
           kind: "prefix",
           path: API_PREFIX,
-          handler: async (req, res) => {
-            // Owner-only: this board reads the user's private session logs.
-            const admission = ownerAdmission(webCtx.connection, req);
-            if (!admission.ok) {
-              if (admission.error) {
-                ctx.logger?.warn?.(`[super-kanban] admission failed: ${String(admission.error?.message || admission.error)}`);
-              }
-              sendJson(res, admission.status, { ok: false, error: "unauthorized" });
+          auth: "required",
+          handler: async (req, res, peer) => {
+            if (peer?.principal?.kind !== "owner") {
+              sendJson(res, 403, { ok: false, error: "unauthorized" });
               return;
             }
             let url;
