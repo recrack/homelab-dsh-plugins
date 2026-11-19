@@ -53,7 +53,9 @@
       "archive": "packages/open-artifacts/snapshots/dsh-claude-slides-2.16.0.tgz",
       "integrity": "sha512-bWoNc+7FoZkvc7KH6D2wwYiTUF6wN9+xdUB/XRw6+KrD+E9+37kcBfPHVmdmRI9c7ds61C5VYuvuOXs3ag6zHw==",
       "activation": "bundle",
-      "runtimeDependencies": ["dsh-claude-artifacts"]
+      "runtimeDependencies": [
+        "dsh-claude-artifacts"
+      ]
     },
     {
       "id": "dsh-claude-design",
@@ -64,7 +66,9 @@
       "archive": "packages/open-artifacts/snapshots/dsh-claude-design-2.16.0.tgz",
       "integrity": "sha512-xPpAOG9i0IVXsC4kf1cawKXLsno0Bh9EANdLqHI7o3KUWv1HsUuyoXvbgoRsclWBcmZ6qrmE8F1n/urZLOulcA==",
       "activation": "bundle",
-      "runtimeDependencies": ["dsh-claude-artifacts"]
+      "runtimeDependencies": [
+        "dsh-claude-artifacts"
+      ]
     },
     {
       "id": "dsh-claude-design-system",
@@ -75,7 +79,9 @@
       "archive": "packages/open-artifacts/snapshots/dsh-claude-design-system-2.16.0.tgz",
       "integrity": "sha512-2er68Ua0/Q4Lo6m9i/WWAs9PRd9E2tPwnuMTncgrYVRILmr9nqF855KMQst5zWaYIN7VROn6/AzCVdeGOnlUAA==",
       "activation": "bundle",
-      "runtimeDependencies": ["dsh-claude-artifacts"]
+      "runtimeDependencies": [
+        "dsh-claude-artifacts"
+      ]
     },
     {
       "id": "dsh-claude-data",
@@ -86,7 +92,9 @@
       "archive": "packages/open-artifacts/snapshots/dsh-claude-data-2.16.0.tgz",
       "integrity": "sha512-q2G7AYLJsE2MOizCdsYFSIvByiL/KJHLHicxdMp81LLo//8AhWd5qkk4Cn0smPG5Pw0Da+0hP7+BHhTbVZdEXg==",
       "activation": "bundle",
-      "runtimeDependencies": ["dsh-claude-artifacts"]
+      "runtimeDependencies": [
+        "dsh-claude-artifacts"
+      ]
     },
     {
       "id": "dsh-claude-motion",
@@ -97,7 +105,9 @@
       "archive": "packages/open-artifacts/snapshots/dsh-claude-motion-2.16.0.tgz",
       "integrity": "sha512-MOpVZShokost/orYxJF8wY9ZHjdzOQARnhGhOP6IcWlSYA9yNRYLnOSG9q7kh6XopRbirQKvaseynIjU90QqBA==",
       "activation": "bundle",
-      "runtimeDependencies": ["dsh-claude-artifacts"]
+      "runtimeDependencies": [
+        "dsh-claude-artifacts"
+      ]
     },
     {
       "id": "dsh-claude-whiteboard",
@@ -108,7 +118,9 @@
       "archive": "packages/open-artifacts/snapshots/dsh-claude-whiteboard-2.16.0.tgz",
       "integrity": "sha512-NJlwk4XeataFP+iUKg6gMDs2NgpvZ1sEKGWw1jA2QMe2H7tncFBBCa5giuNP8s9vpplJIG0zCgxH65d+kQb3Ow==",
       "activation": "bundle",
-      "runtimeDependencies": ["dsh-claude-artifacts"]
+      "runtimeDependencies": [
+        "dsh-claude-artifacts"
+      ]
     },
     {
       "id": "dsh-crew",
@@ -117,6 +129,15 @@
       "upstream": "https://github.com/ZSeven-W/dsh-crew",
       "revision": "b00cc6d039cdecf8563b8863aa4b5404285f6e83",
       "activation": "bundle"
+    },
+    {
+      "id": "dsh-super-kanban",
+      "package": "dsh-super-kanban",
+      "path": "packages/dsh-super-kanban",
+      "upstream": "https://github.com/topmindspace/dsh-super-kanban",
+      "revision": "f8d462a08bb1079936d88414fc1e86eca4b0cfa1",
+      "activation": "bundle",
+      "localHardening": "Defaults automatic session scanning to disabled."
     }
   ]
 }
