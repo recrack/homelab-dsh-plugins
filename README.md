@@ -4,6 +4,9 @@ This repository stores plugin packages and reviewed upstream snapshots for [home
 
 The secure image fetches one pinned commit of this repository and builds its packages during the Docker image build. Each family Web profile includes `dsh-family-account`, which places the signed-in member and enabled features in the DSH sidebar and pending search approvals below the composer. The existing `dsh-browser` plugin defaults to Chromium; Camoufox is an optional engine in that same plugin and uses a separate secure deployment image with its pinned browser and fingerprint model preloaded at build time. At launch, `--plugin <id>` selects optional packages already in the image and adds them to the persistent Web profile. The launcher does not clone plugin sources at runtime. New state directories select no optional plugins by default; existing selections persist. See the secure deployment's [plugin build and activation architecture](https://github.com/recrack/homelab-deepseek-harness-secure/blob/master/deploy/offline/README.md#build-and-activation).
 
+
+Pigma family test members run Camoufox `159.0-beta.42` using the offline image. The browser plugin's start result reports `camoufox` as its channel. Search and public-page approvals are handled by the deployment collector. Direct page navigation in the browser uses the operator's origin allowlist.
+
 ## Catalog
 
 | ID | Package | Source | Snapshot | Activation |
