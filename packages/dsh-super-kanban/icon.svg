@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36" fill="none">
+  <defs>
+    <linearGradient id="super-kanban-cards" x1="8" y1="8" x2="25" y2="28" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#69C8FA"/>
+      <stop offset="1" stop-color="#506DF0"/>
+    </linearGradient>
+    <linearGradient id="super-kanban-active" x1="23" y1="19" x2="29" y2="28" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#51D8BD"/>
+      <stop offset="1" stop-color="#419DE8"/>
+    </linearGradient>
+  </defs>
+  <g fill="url(#super-kanban-cards)">
+    <rect x="7.5" y="8" width="5.75" height="11" rx="1.7"/>
+    <rect x="7.5" y="21.25" width="5.75" height="6.75" rx="1.7" opacity=".72"/>
+    <rect x="15.125" y="8" width="5.75" height="15.5" rx="1.7"/>
+    <rect x="22.75" y="8" width="5.75" height="8.75" rx="1.7" opacity=".78"/>
+  </g>
+  <rect x="22.75" y="19" width="5.75" height="9" rx="1.7" fill="url(#super-kanban-active)"/>
+  <path d="M9.45 11h1.85m5.775 0h1.85m5.775 0h1.85" stroke="#FFF" stroke-width="1.25" stroke-linecap="round" opacity=".9"/>
+</svg>

@@ -21,6 +21,7 @@ Pigma family test members run Camoufox `159.0-beta.42` using the offline image. 
 | `dsh-claude-data` | `dsh-claude-data` | [JimLiu/open-artifacts](https://github.com/JimLiu/open-artifacts) | `2.16.0`, SHA-512 pinned | Web bundle |
 | `dsh-claude-motion` | `dsh-claude-motion` | [JimLiu/open-artifacts](https://github.com/JimLiu/open-artifacts) | `2.16.0`, SHA-512 pinned | Web bundle |
 | `dsh-claude-whiteboard` | `dsh-claude-whiteboard` | [JimLiu/open-artifacts](https://github.com/JimLiu/open-artifacts) | `2.16.0`, SHA-512 pinned | Web bundle |
+| `dsh-super-kanban` | `dsh-super-kanban` | [topmindspace/dsh-super-kanban](https://github.com/topmindspace/dsh-super-kanban) | `0.10.5` | Web bundle, automatic session scanning off by default |
 | `dsh-crew` | `@zseven-w/dsh-crew` | [ZSeven-W/dsh-crew](https://github.com/ZSeven-W/dsh-crew) | `b00cc6d039cdecf8563b8863aa4b5404285f6e83` | Web bundle |
 
 `plugins.json` records package paths, upstream revisions, activation types, and SHA-512 hashes for the Open Artifacts npm tarballs stored under `packages/open-artifacts/snapshots/`. `scripts/build.sh` verifies and extracts those tarballs into an ignored generated directory; the image build needs no npm registry access for Open Artifacts. Each package retains its applicable upstream license and notices. The `dsh-context` snapshot blocks its automatic catalog, balance, and recommendation requests; its upstream source is retained under `packages/dsh-context/upstream/package` for comparison.
