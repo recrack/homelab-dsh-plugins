@@ -59,7 +59,7 @@ const sessionInfoSchema = closedObject({
   state: { type: 'string', const: 'running' },
   headless: { type: 'boolean' },
   browser: closedObject({
-    channel: { type: 'string', enum: ['chrome', 'edge', 'chromium', 'custom'] },
+    channel: { type: 'string', enum: ['chrome', 'edge', 'chromium', 'custom', 'camoufox'] },
     version: { type: 'string' },
   }),
   page: pageSchema,
