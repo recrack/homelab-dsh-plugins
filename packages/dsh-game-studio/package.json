@@ -1,0 +1,134 @@
+{
+  "name": "@zseven-w/dsh-game-studio",
+  "version": "0.1.0-rc.6",
+  "description": "Describe a small 2D/3D game in one sentence, playtest in headless Chrome, swap in AI art, export WeChat Mini Games (< 4 MB), and publish to GitHub Pages — for DeepSeek Harness, Codex, Claude Code, and Antigravity.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ZSeven-W/dsh-game-studio.git"
+  },
+  "homepage": "https://github.com/ZSeven-W/dsh-game-studio#readme",
+  "bugs": {
+    "url": "https://github.com/ZSeven-W/dsh-game-studio/issues"
+  },
+  "type": "module",
+  "main": "lib/index.js",
+  "bin": {
+    "dsh-game-studio-mcp": "plugins/game-studio/scripts/mcp-server.mjs"
+  },
+  "exports": {
+    ".": "./lib/index.js",
+    "./mcp-server": "./lib/mcp-server.js",
+    "./client": "./lib/client.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "plugins",
+    "skills",
+    ".agents",
+    ".claude-plugin",
+    ".mcp.json",
+    "scripts/install-hosts.mjs",
+    "template/*/game.js",
+    "template/*/game.json",
+    "template/*/assets/*",
+    "locale/*.json",
+    "icon.svg",
+    "cordis.patch.yml",
+    "INSTALL.md",
+    "README.md",
+    "README.*.md",
+    "LICENSE",
+    "THIRD_PARTY_NOTICES.md"
+  ],
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "codex",
+    "claude-code",
+    "mcp",
+    "game",
+    "gamedev",
+    "ai-game-generator",
+    "html5-games",
+    "wechat-minigame",
+    "threejs",
+    "github-pages"
+  ],
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "node --test --test-concurrency=1 test/*.test.mjs",
+    "mcp": "node lib/mcp-server.js",
+    "doctor": "node lib/mcp-server.js --doctor",
+    "setup": "node scripts/install-hosts.mjs codex",
+    "setup:codex": "node scripts/install-hosts.mjs codex",
+    "setup:claude": "node scripts/install-hosts.mjs claude",
+    "setup:agy": "node scripts/install-hosts.mjs agy",
+    "setup:grok": "node scripts/install-hosts.mjs grok",
+    "setup:all": "node scripts/install-hosts.mjs all",
+    "verify:codex": "node scripts/install-hosts.mjs verify-codex"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-renderer",
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-tool",
+        "@deepseek-ai/dsh-client-ui-sidebar-right"
+      ]
+    }
+  },
+  "dshHostRuntime": {
+    "server": {
+      "requiredServices": [
+        "tools",
+        "workingDirectory"
+      ],
+      "optionalServices": [
+        "commands",
+        "credentials"
+      ],
+      "requiredPackages": {
+        "@deepseek-ai/dsh-tools": "0.2.1-rc.5"
+      }
+    },
+    "client": {
+      "requiredServices": [
+        "slots",
+        "locale",
+        "remote",
+        "remote.workspaceFiles",
+        "remote.commands",
+        "sidebarRight",
+        "sidebarRightTabs"
+      ],
+      "requiredPackages": {
+        "react": "^18.2.0"
+      }
+    }
+  },
+  "dependencies": {
+    "playwright-core": "1.64.1",
+    "pngjs": "^7.0.0",
+    "undici": "^7.30.1"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0",
+    "qrcode-generator": "2.0.4",
+    "three": "0.187.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

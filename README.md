@@ -21,6 +21,7 @@ Pigma family test members run Camoufox `159.0-beta.42` using the offline image. 
 | `dsh-claude-data` | `dsh-claude-data` | [JimLiu/open-artifacts](https://github.com/JimLiu/open-artifacts) | `2.16.0`, SHA-512 pinned | Web bundle |
 | `dsh-claude-motion` | `dsh-claude-motion` | [JimLiu/open-artifacts](https://github.com/JimLiu/open-artifacts) | `2.16.0`, SHA-512 pinned | Web bundle |
 | `dsh-claude-whiteboard` | `dsh-claude-whiteboard` | [JimLiu/open-artifacts](https://github.com/JimLiu/open-artifacts) | `2.16.0`, SHA-512 pinned | Web bundle |
+| `dsh-game-studio` | `@zseven-w/dsh-game-studio` | [ZSeven-W/dsh-game-studio](https://github.com/ZSeven-W/dsh-game-studio) | `0.1.0-rc.6` | Web bundle for local games, previews and export |
 | `dsh-super-kanban` | `dsh-super-kanban` | [topmindspace/dsh-super-kanban](https://github.com/topmindspace/dsh-super-kanban) | `0.10.5` | Web bundle, automatic session scanning off by default |
 | `dsh-crew` | `@zseven-w/dsh-crew` | [ZSeven-W/dsh-crew](https://github.com/ZSeven-W/dsh-crew) | `b00cc6d039cdecf8563b8863aa4b5404285f6e83` | Web bundle |
 

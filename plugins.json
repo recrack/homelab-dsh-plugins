@@ -138,6 +138,15 @@
       "revision": "f8d462a08bb1079936d88414fc1e86eca4b0cfa1",
       "activation": "bundle",
       "localHardening": "Defaults automatic session scanning to disabled and uses DSH Web route owner admission."
+    },
+    {
+      "id": "dsh-game-studio",
+      "package": "@zseven-w/dsh-game-studio",
+      "path": "packages/dsh-game-studio",
+      "upstream": "https://github.com/ZSeven-W/dsh-game-studio",
+      "revision": "02d7f26670d89883583edbf1cdd1a4fd3e4a6187",
+      "activation": "bundle",
+      "localHardening": "The DSH bundle exposes local workflows. External image generation, online sources, sharing, and publishing are disabled."
     }
   ]
 }
